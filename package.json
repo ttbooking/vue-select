@@ -10,7 +10,7 @@
       "import": "./dist/vue-select.js",
       "require": "./dist/vue-select.umd.cjs"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/vue-select.css"
   },
   "types": "./index.d.ts",
   "files": [
