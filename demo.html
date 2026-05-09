@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VueSelect — Демо</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <style>
+    body { background: #f5f5f5; padding-bottom: 60px; }
+    h1.page-header { margin-bottom: 30px; }
+    .demo-row { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+    .demo-control { flex: 1; min-width: 260px; max-width: 420px; }
+    .demo-value { flex: 1; min-width: 160px; }
+    .demo-value code { display: block; background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 6px 10px; font-size: 13px; word-break: break-all; }
+    .demo-hint { color: #888; font-size: 12px; margin-top: 6px; }
+    .panel-heading h4 { margin: 0; font-size: 15px; }
+
+    /* ── VueSelect ────────────────────────────────────────────────────────── */
+    .vue-select { position: relative; box-sizing: border-box; font-size: 14px; color: #333; }
+    .vue-select__control {
+      display: flex; align-items: center; min-height: 34px; padding: 2px 6px;
+      background-color: #fff; border: 1px solid #ccc; border-radius: 4px;
+      cursor: pointer; user-select: none;
+      transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+      flex-wrap: wrap; gap: 2px;
+    }
+    .vue-select__control:focus,
+    .vue-select--open .vue-select__control,
+    .vue-select__control--focus {
+      border-color: #66afe9; outline: 0;
+      box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+    }
+    .vue-select--disabled .vue-select__control { background-color: #eee; cursor: not-allowed; opacity: .7; }
+    .has-error .vue-select__control { border-color: #a94442; }
+    .vue-select__value-container { display: flex; flex-wrap: wrap; align-items: center; flex: 1; min-width: 0; gap: 2px; padding: 1px 0; }
+    .vue-select__single-value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 28px; }
+    .vue-select__placeholder { color: #999; line-height: 28px; }
+    .vue-select__tag { display: inline-flex; align-items: center; background-color: #e4e4e4; border: 1px solid #aaa; border-radius: 3px; padding: 0 4px; font-size: 13px; line-height: 22px; max-width: 100%; overflow: hidden; }
+    .vue-select__tag--created { background-color: #d9edf7; border-color: #bce8f1; }
+    .vue-select__tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vue-select__tag-remove { margin-left: 4px; cursor: pointer; color: #666; font-size: 15px; line-height: 1; flex-shrink: 0; }
+    .vue-select__tag-remove:hover { color: #333; }
+    .vue-select__search { border: none; outline: none; background: transparent; font-size: 14px; line-height: 28px; min-width: 80px; flex: 1; padding: 0; color: #333; }
+    .vue-select__search--single { width: 100%; }
+    .vue-select__indicators { display: flex; align-items: center; flex-shrink: 0; margin-left: 4px; }
+    .vue-select__clear { color: #999; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+    .vue-select__clear:hover { color: #333; }
+    .vue-select__separator { width: 1px; height: 20px; background-color: #ccc; margin: 0 4px; }
+    .vue-select__arrow { color: #999; font-size: 10px; transition: transform .2s; display: inline-block; }
+    .vue-select__arrow--up { transform: rotate(180deg); }
+    .vue-select__dropdown { position: absolute; top: calc(100% + 2px); left: 0; right: 0; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 6px 12px rgba(0,0,0,.175); z-index: 1050; max-height: 240px; overflow-y: auto; }
+    .vue-select__status { padding: 6px 12px; color: #999; font-size: 13px; }
+    .vue-select__group-label { padding: 6px 12px 3px; font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: .05em; background-color: #f5f5f5; }
+    .vue-select__option { padding: 6px 12px; cursor: pointer; line-height: 1.4; transition: background-color .1s; }
+    .vue-select__option--group-child { padding-left: 20px; }
+    .vue-select__option:hover,
+    .vue-select__option--focused { background-color: #f5f5f5; }
+    .vue-select__option--selected { background-color: #337ab7; color: #fff; }
+    .vue-select__option--selected:hover,
+    .vue-select__option--selected.vue-select__option--focused { background-color: #286090; }
+    .vue-select__option--tag { font-style: italic; color: #5bc0de; }
+    .vue-select__option--selected.vue-select__option--tag { color: #fff; }
+    .vue-select__pagination-sentinel { height: 1px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+const { createApp, ref, computed, watch, nextTick, onMounted, onBeforeUnmount } = Vue
+
+const cloneDeep = (v) => {
+  if (v === null || v === undefined || typeof v !== 'object') return v
+  if (Array.isArray(v)) return v.map(cloneDeep)
+  const result = {}
+  for (const key of Object.keys(v)) result[key] = cloneDeep(v[key])
+  return result
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VueSelect
+// ─────────────────────────────────────────────────────────────────────────────
+const VueSelect = {
+  name: 'VueSelect',
+  props: {
+    modelValue:              { type: [String, Array, Number], default: null },
+    options:                 { type: Array, default: () => [] },
+    selectClass:             { type: [Object, String], default: '' },
+    name:                    { type: String, default: null },
+    searchFunction: {
+      type: Function,
+      default: (term) => (item) => {
+        const sw = (t) => {
+          const m = {
+            Q:'Й',W:'Ц',E:'У',R:'К',T:'Е',Y:'Н',U:'Г',I:'Ш',O:'Щ',P:'З','{':'Х','}':'Ъ',
+            A:'Ф',S:'Ы',D:'В',F:'А',G:'П',H:'Р',J:'О',K:'Л',L:'Д',':':'Ж','"':'Э',
+            Z:'Я',X:'Ч',C:'С',V:'М',B:'И',N:'Т',M:'Ь','<':'Б','>':'Ю','?':',',
+            q:'й',w:'ц',e:'у',r:'к',t:'е',y:'н',u:'г',i:'ш',o:'щ',p:'з','[':'х',']':'ъ',
+            a:'ф',s:'ы',d:'в',f:'а',g:'п',h:'р',j:'о',k:'л',l:'д',';':'ж',"'":'э',
+            z:'я',x:'ч',c:'с',v:'м',b:'и',n:'т',m:'ь',',':'б','.':'ю','/':'.',
+          }
+          return [...t].map(c => m[c] ?? c).join('')
+        }
+        const terms = (term || '').toLowerCase().split(/\s/).filter(Boolean)
+        const text = item.text.toLowerCase()
+        return terms.every(t => text.includes(t) || text.includes(sw(t)))
+      },
+    },
+    queryFunction:           { type: Function, default: null },
+    multiple:                { type: Boolean, default: false },
+    minimumResultsForSearch: { type: Number, default: 0 },
+    cache:                   { type: Array, default: null },
+    tagSeparator:            { type: RegExp, default: () => /[^\d\wа-яё]/iu },
+    createTag:               { type: Function, default: null },
+    isDefaultFromCache:      { type: Boolean, default: false },
+    disabled:                { type: Boolean, default: false },
+    hasError:                { type: Boolean, default: false },
+    placeholder:             { type: String, default: '' },
+    lang:                    { type: String, default: 'ru' },
+  },
+  emits: ['update:modelValue', 'cache', 'search'],
+
+  setup(props, { emit }) {
+    const PER_PAGE = 20
+    const containerRef          = ref(null)
+    const dropdownRef           = ref(null)
+    const searchInputRef        = ref(null)
+    const paginationSentinelRef = ref(null)
+
+    const isOpen       = ref(false)
+    const searchTerm   = ref('')
+    const isLoading    = ref(false)
+    const focusedIndex = ref(-1)
+
+    const cacheData        = ref(props.cache ? cloneDeep(props.cache) : cloneDeep(props.options))
+    const currentPage      = ref(1)
+    const hasMorePages     = ref(false)
+    const displayedOptions = ref([])
+
+    const phrases = computed(() =>
+      props.lang === 'ru'
+        ? { noResults: () => 'Совпадений не найдено', searching: () => 'Поиск ...' }
+        : props.lang
+    )
+
+    const selectedItems = computed(() => {
+      const val = props.modelValue
+      if (val === null || val === undefined || val === '') return []
+      const ids = (Array.isArray(val) ? val : [val]).filter(v => v !== null && v !== undefined && v !== '').map(v => String(v))
+      const result = []; const visited = new Set()
+      const tryAdd = (item) => {
+        const sid = String(item.id)
+        if (ids.includes(sid) && !visited.has(sid)) { visited.add(sid); result.push(item) }
+      }
+      for (const item of cacheData.value) {
+        if (item.children) item.children.forEach(tryAdd)
+        else tryAdd(item)
+      }
+      for (const id of ids) { if (!visited.has(id)) result.push({ id, text: id }) }
+      return result
+    })
+
+    const filteredOptions = computed(() => displayedOptions.value)
+    const flatOptions = computed(() => {
+      const flat = []
+      for (const opt of filteredOptions.value) {
+        if (opt.children) flat.push(...opt.children)
+        else flat.push(opt)
+      }
+      return flat
+    })
+
+    const mergeIntoCache = (items) => {
+      for (const item of items) {
+        if (item.children) {
+          const g = cacheData.value.find(c => c.text === item.text && c.children)
+          if (g) {
+            for (const ch of item.children) {
+              if (!g.children.find(c => String(c.id) === String(ch.id))) g.children.push(ch)
+            }
+          } else { cacheData.value.push(cloneDeep(item)) }
+        } else {
+          if (item.id !== undefined && !cacheData.value.find(c => !c.children && String(c.id) === String(item.id)))
+            cacheData.value.push(cloneDeep(item))
+        }
+      }
+      emit('cache', cacheData.value)
+    }
+
+    const mergeOptionLists = (target, source) => {
+      const result = cloneDeep(target)
+      for (const item of source) {
+        if (item.children) {
+          const g = result.find(r => r.children && r.text === item.text)
+          if (g) {
+            for (const ch of item.children) {
+              if (!g.children.find(c => String(c.id) === String(ch.id))) g.children.push(ch)
+            }
+          } else { result.push(cloneDeep(item)) }
+        } else {
+          if (!result.find(r => !r.children && String(r.id) === String(item.id))) result.push(cloneDeep(item))
+        }
+      }
+      return result
+    }
+
+    const applyLocalFilter = (term, page = 1) => {
+      const source = cloneDeep(props.isDefaultFromCache ? cacheData.value : props.options)
+      let filtered
+      if (term) {
+        filtered = source.reduce((acc, opt) => {
+          if (opt.children) {
+            const ch = opt.children.filter(props.searchFunction(term))
+            if (ch.length) acc.push({ ...opt, children: ch })
+          } else if (props.searchFunction(term)(opt)) { acc.push(opt) }
+          return acc
+        }, [])
+      } else { filtered = source }
+      const flat = []
+      filtered.forEach(o => o.children ? flat.push(...o.children) : flat.push(o))
+      const total = flat.length
+      const offset = (page - 1) * PER_PAGE
+      const pFlat = flat.slice(offset, offset + PER_PAGE)
+      const pageOpts = []
+      for (const opt of filtered) {
+        if (opt.children) {
+          const ch = opt.children.filter(c => pFlat.find(p => String(p.id) === String(c.id)))
+          if (ch.length) pageOpts.push({ ...opt, children: ch })
+        } else {
+          if (pFlat.find(p => String(p.id) === String(opt.id))) pageOpts.push(opt)
+        }
+      }
+      return { results: pageOpts, pagination: { more: offset + PER_PAGE < total } }
+    }
+
+    const buildTagOption = (term) => {
+      if (!props.createTag || !term) return []
+      const tag = props.createTag({ term })
+      return tag == null ? [] : [{ ...tag, isTag: true }]
+    }
+
+    const removeOldTags = () => {
+      const ids = (Array.isArray(props.modelValue) ? props.modelValue : [props.modelValue]).filter(Boolean).map(String)
+      cacheData.value = cacheData.value.filter(o => !o.isTag || ids.includes(String(o.id)))
+    }
+
+    const addValue = (option) => {
+      mergeIntoCache([option])
+      if (props.multiple) {
+        const cur = Array.isArray(props.modelValue) ? [...props.modelValue] : []
+        if (!cur.map(String).includes(String(option.id))) emit('update:modelValue', [...cur, option.id])
+      } else { emit('update:modelValue', option.id); closeDropdown() }
+    }
+
+    const processTokenizer = (term) => {
+      if (!props.createTag || !term) return term
+      const parts = term.split(props.tagSeparator)
+      if (parts.length <= 1) return term
+      for (let i = 0; i < parts.length - 1; i++) {
+        const t = parts[i].trim()
+        if (!t) continue
+        const tag = props.createTag({ term: t })
+        if (tag) { mergeIntoCache([{ ...tag, isTag: true }]); addValue(tag) }
+      }
+      return parts[parts.length - 1]
+    }
+
+    const loadOptions = async (term = '', page = 1, append = false) => {
+      if (!append) displayedOptions.value = []
+      isLoading.value = true
+      const tagResults = buildTagOption(term)
+      const localData  = applyLocalFilter(term, page)
+      if (props.queryFunction && term) {
+        await new Promise((resolve) => {
+          props.queryFunction({ term, page }, (data) => {
+            mergeIntoCache(data.results || [])
+            const merged = mergeOptionLists(tagResults, mergeOptionLists(localData.results, data.results || []))
+            if (append) displayedOptions.value = mergeOptionLists(displayedOptions.value, merged)
+            else displayedOptions.value = merged
+            hasMorePages.value = data.pagination?.more || localData.pagination.more
+            isLoading.value = false
+            resolve()
+          })
+        })
+      } else {
+        const merged = mergeOptionLists(tagResults, localData.results)
+        if (append) displayedOptions.value = mergeOptionLists(displayedOptions.value, merged)
+        else displayedOptions.value = merged
+        hasMorePages.value = localData.pagination.more
+        isLoading.value = false
+      }
+      focusedIndex.value = -1
+    }
+
+    let paginationObserver = null
+    const setupPaginationObserver = () => {
+      paginationObserver?.disconnect()
+      paginationObserver = null
+      if (!paginationSentinelRef.value) return
+      paginationObserver = new IntersectionObserver(async (entries) => {
+        if (entries[0].isIntersecting && hasMorePages.value && !isLoading.value) {
+          currentPage.value++
+          await loadOptions(searchTerm.value, currentPage.value, true)
+        }
+      }, { threshold: 0.1 })
+      paginationObserver.observe(paginationSentinelRef.value)
+    }
+
+    const openDropdown = async () => {
+      if (isOpen.value || props.disabled) return
+      removeOldTags()
+      currentPage.value = 1
+      searchTerm.value = ''
+      isOpen.value = true
+      await loadOptions('', 1)
+      await nextTick()
+      searchInputRef.value?.focus()
+      setupPaginationObserver()
+    }
+
+    const closeDropdown = () => {
+      isOpen.value = false
+      searchTerm.value = ''
+      focusedIndex.value = -1
+      paginationObserver?.disconnect()
+      paginationObserver = null
+    }
+
+    const toggleDropdown = () => isOpen.value ? closeDropdown() : openDropdown()
+
+    const isSelected = (option) => {
+      const val = props.modelValue
+      if (val === null || val === undefined) return false
+      const id = String(option.id)
+      if (Array.isArray(val)) return val.map(String).includes(id)
+      return String(val) === id
+    }
+
+    const selectOption = (option) => {
+      if (isSelected(option) && props.multiple) { removeItem(option); return }
+      addValue(option)
+      if (props.multiple) {
+        searchTerm.value = ''
+        loadOptions('', 1)
+        nextTick(() => searchInputRef.value?.focus())
+      }
+    }
+
+    const removeItem = (option) => {
+      if (props.multiple) {
+        const cur = Array.isArray(props.modelValue) ? [...props.modelValue] : []
+        emit('update:modelValue', cur.filter(v => String(v) !== String(option.id)))
+      } else { emit('update:modelValue', null) }
+    }
+
+    const clearAll = () => emit('update:modelValue', props.multiple ? [] : null)
+
+    const onControlKeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); openDropdown() }
+      if (e.key === 'Escape') closeDropdown()
+    }
+
+    const onSearchKeydown = (e) => {
+      if (e.key === 'Escape') { closeDropdown(); return }
+      if (e.key === 'ArrowDown') { e.preventDefault(); focusedIndex.value = Math.min(focusedIndex.value + 1, flatOptions.value.length - 1); return }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); focusedIndex.value = Math.max(focusedIndex.value - 1, 0); return }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        const f = flatOptions.value[focusedIndex.value]
+        if (f) selectOption(f)
+        return
+      }
+      if (e.key === 'Backspace' && !searchTerm.value && props.multiple) {
+        const cur = Array.isArray(props.modelValue) ? [...props.modelValue] : []
+        if (cur.length) emit('update:modelValue', cur.slice(0, -1))
+      }
+    }
+
+    let debounceTimer = null
+    const onSearchInput = async () => {
+      const processed = processTokenizer(searchTerm.value)
+      if (processed !== searchTerm.value) searchTerm.value = processed
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(async () => {
+        currentPage.value = 1
+        removeOldTags()
+        await loadOptions(searchTerm.value, 1)
+        setupPaginationObserver()
+      }, 250)
+    }
+
+    const onSearchBlur = () => {
+      setTimeout(() => {
+        if (!containerRef.value?.contains(document.activeElement)) closeDropdown()
+      }, 150)
+    }
+
+    const onClickOutside = (e) => {
+      if (!containerRef.value?.contains(e.target)) closeDropdown()
+    }
+
+    const getFlatIndex       = (group, child) => flatOptions.value.findIndex(o => String(o.id) === String(child.id))
+    const getFlatIndexSimple = (option)        => flatOptions.value.findIndex(o => String(o.id) === String(option.id))
+
+    watch(() => props.options, (newOpts) => {
+      if (!newOpts) return
+      mergeIntoCache(newOpts)
+      if (isOpen.value) loadOptions(searchTerm.value, 1)
+    }, { deep: true })
+
+    watch(cacheData, () => emit('cache', cacheData.value), { deep: true })
+
+    onMounted(() => document.addEventListener('click', onClickOutside))
+    onBeforeUnmount(() => {
+      document.removeEventListener('click', onClickOutside)
+      paginationObserver?.disconnect()
+      clearTimeout(debounceTimer)
+    })
+
+    return {
+      containerRef, dropdownRef, searchInputRef, paginationSentinelRef,
+      isOpen, searchTerm, isLoading, focusedIndex,
+      phrases, selectedItems, filteredOptions,
+      toggleDropdown, onControlKeydown,
+      onSearchInput, onSearchKeydown, onSearchBlur,
+      removeItem, selectOption, clearAll, isSelected,
+      getFlatIndex, getFlatIndexSimple,
+    }
+  },
+
+  template: `
+    <div class="vue-select"
+      :class="{ 'vue-select--open': isOpen, 'vue-select--disabled': disabled, 'has-error': hasError }"
+      ref="containerRef">
+
+      <select v-if="name" :name="name" :multiple="multiple" style="display:none" :disabled="disabled">
+        <option v-for="item in selectedItems" :key="item.id" :value="item.id" selected>{{ item.text }}</option>
+      </select>
+
+      <div class="vue-select__control"
+        :class="[selectClass, { 'vue-select__control--focus': isOpen }]"
+        @click="!disabled && toggleDropdown()"
+        @keydown="onControlKeydown"
+        :tabindex="disabled ? -1 : 0"
+        role="combobox" :aria-expanded="isOpen" aria-haspopup="listbox">
+
+        <div class="vue-select__value-container">
+          <template v-if="multiple">
+            <span v-for="item in selectedItems" :key="item.id"
+              class="vue-select__tag" :class="{ 'vue-select__tag--created': item.isTag }">
+              <span class="vue-select__tag-text">{{ item.text }}</span>
+              <span class="vue-select__tag-remove" @click.stop="removeItem(item)" @mousedown.prevent>&times;</span>
+            </span>
+            <input v-if="isOpen || selectedItems.length === 0"
+              ref="searchInputRef" class="vue-select__search"
+              v-model="searchTerm" @input="onSearchInput" @keydown="onSearchKeydown" @blur="onSearchBlur"
+              placeholder="" autocomplete="off" />
+          </template>
+          <template v-else>
+            <span v-if="!isOpen && selectedItems.length > 0" class="vue-select__single-value">{{ selectedItems[0]?.text }}</span>
+            <input v-show="isOpen"
+              ref="searchInputRef" class="vue-select__search vue-select__search--single"
+              v-model="searchTerm" @input="onSearchInput" @keydown="onSearchKeydown" @blur="onSearchBlur"
+              autocomplete="off" />
+            <span v-if="!isOpen && selectedItems.length === 0" class="vue-select__placeholder">{{ placeholder }}</span>
+          </template>
+        </div>
+
+        <div class="vue-select__indicators">
+          <span v-if="!disabled && (multiple ? selectedItems.length > 0 : modelValue !== null && modelValue !== '')"
+            class="vue-select__clear" @click.stop="clearAll" @mousedown.prevent title="Очистить">&times;</span>
+          <span class="vue-select__separator"></span>
+          <span class="vue-select__arrow" :class="{ 'vue-select__arrow--up': isOpen }">&#9660;</span>
+        </div>
+      </div>
+
+      <div v-show="isOpen" class="vue-select__dropdown" ref="dropdownRef" role="listbox" :aria-multiselectable="multiple">
+        <div v-if="isLoading" class="vue-select__status">{{ phrases.searching() }}</div>
+        <div v-else-if="filteredOptions.length === 0" class="vue-select__status">{{ phrases.noResults() }}</div>
+        <template v-else>
+          <template v-for="option in filteredOptions" :key="option.id ?? option.text">
+            <template v-if="option.children">
+              <div class="vue-select__group-label">{{ option.text }}</div>
+              <div v-for="child in option.children" :key="child.id"
+                class="vue-select__option vue-select__option--group-child"
+                :class="{ 'vue-select__option--selected': isSelected(child), 'vue-select__option--focused': focusedIndex === getFlatIndex(option, child), 'vue-select__option--tag': child.isTag }"
+                @click.stop="selectOption(child)" @mouseenter="focusedIndex = getFlatIndex(option, child)"
+                role="option" :aria-selected="isSelected(child)">{{ child.text }}</div>
+            </template>
+            <div v-else
+              class="vue-select__option"
+              :class="{ 'vue-select__option--selected': isSelected(option), 'vue-select__option--focused': focusedIndex === getFlatIndexSimple(option), 'vue-select__option--tag': option.isTag }"
+              @click.stop="selectOption(option)" @mouseenter="focusedIndex = getFlatIndexSimple(option)"
+              role="option" :aria-selected="isSelected(option)">{{ option.text }}</div>
+          </template>
+        </template>
+        <div ref="paginationSentinelRef" class="vue-select__pagination-sentinel"></div>
+      </div>
+    </div>
+  `,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Demo data
+// ─────────────────────────────────────────────────────────────────────────────
+const CITIES = [
+  { id: 'msk',  text: 'Москва' },           { id: 'spb',  text: 'Санкт-Петербург' },
+  { id: 'nsk',  text: 'Новосибирск' },       { id: 'ekb',  text: 'Екатеринбург' },
+  { id: 'kzn',  text: 'Казань' },            { id: 'nnov', text: 'Нижний Новгород' },
+  { id: 'chel', text: 'Челябинск' },         { id: 'omsk', text: 'Омск' },
+  { id: 'sam',  text: 'Самара' },            { id: 'rnd',  text: 'Ростов-на-Дону' },
+  { id: 'ufa',  text: 'Уфа' },              { id: 'kras', text: 'Красноярск' },
+  { id: 'vrn',  text: 'Воронеж' },           { id: 'prm',  text: 'Пермь' },
+  { id: 'vlg',  text: 'Волгоград' },
+]
+
+const GROUPED = [
+  { text: 'Европа', children: [
+    { id: 'de', text: 'Германия' }, { id: 'fr', text: 'Франция' },
+    { id: 'it', text: 'Италия' },   { id: 'es', text: 'Испания' },
+    { id: 'pl', text: 'Польша' },   { id: 'nl', text: 'Нидерланды' },
+    { id: 'se', text: 'Швеция' },   { id: 'no', text: 'Норвегия' },
+  ]},
+  { text: 'Азия', children: [
+    { id: 'cn', text: 'Китай' },         { id: 'jp', text: 'Япония' },
+    { id: 'kr', text: 'Южная Корея' },   { id: 'in', text: 'Индия' },
+    { id: 'sg', text: 'Сингапур' },      { id: 'th', text: 'Таиланд' },
+  ]},
+  { text: 'Америка', children: [
+    { id: 'us', text: 'США' },      { id: 'ca', text: 'Канада' },
+    { id: 'br', text: 'Бразилия' }, { id: 'mx', text: 'Мексика' },
+    { id: 'ar', text: 'Аргентина' },{ id: 'cl', text: 'Чили' },
+  ]},
+]
+
+const NAMES = [
+  'Александр','Алексей','Андрей','Антон','Артём','Борис','Вадим','Валентин',
+  'Василий','Виктор','Виталий','Владимир','Геннадий','Григорий','Дмитрий',
+  'Евгений','Иван','Игорь','Илья','Кирилл','Константин','Леонид','Максим',
+  'Михаил','Никита','Николай','Олег','Павел','Пётр','Роман','Руслан',
+  'Сергей','Степан','Тимур','Фёдор','Юрий','Яков',
+  'Анна','Дарья','Екатерина','Елена','Ирина','Карина','Ксения',
+  'Лариса','Людмила','Маргарита','Марина','Мария','Надежда','Наталья',
+  'Нина','Оксана','Ольга','Светлана','Татьяна','Юлия',
+]
+const BIG_LIST = Array.from({ length: 120 }, (_, i) => ({
+  id: `p${i + 1}`,
+  text: NAMES[i % NAMES.length] + (i >= NAMES.length ? ` ${Math.floor(i / NAMES.length) + 1}` : ''),
+}))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Demo App
+// ─────────────────────────────────────────────────────────────────────────────
+const App = {
+  components: { VueSelect },
+  setup() {
+    const basicValue   = ref(null)
+    const multiValue   = ref([])
+    const groupedValue = ref(null)
+    const asyncValue   = ref([])
+    const tagsValue    = ref([])
+    const disabledVal  = ref('msk')
+    const errorVal     = ref(null)
+
+    const asyncSearch = ({ term, page }, callback) => {
+      setTimeout(() => {
+        const lc = (term || '').toLowerCase()
+        const all = lc ? BIG_LIST.filter(x => x.text.toLowerCase().includes(lc)) : BIG_LIST
+        const perPage = 10
+        const offset  = (page - 1) * perPage
+        callback({
+          results:    all.slice(offset, offset + perPage),
+          pagination: { more: offset + perPage < all.length },
+        })
+      }, 400)
+    }
+
+    const createTag = ({ term }) => {
+      const t = term.trim()
+      return t ? { id: `tag:${t}`, text: t } : null
+    }
+
+    return {
+      basicValue, multiValue, groupedValue, asyncValue, tagsValue,
+      disabledVal, errorVal,
+      cities: CITIES, grouped: GROUPED,
+      asyncSearch, createTag,
+    }
+  },
+
+  template: `
+    <div class="container" style="max-width: 860px; padding: 40px 15px">
+      <h1 class="page-header">
+        VueSelect — Демонстрация
+        <small>Vue 3 · нативный компонент без jQuery / select2</small>
+      </h1>
+
+      <!-- 1. Одиночный выбор -->
+      <div class="panel panel-default">
+        <div class="panel-heading"><h4>1. Одиночный выбор</h4></div>
+        <div class="panel-body">
+          <div class="demo-row">
+            <div class="demo-control">
+              <VueSelect v-model="basicValue" :options="cities" placeholder="Выберите город..." />
+            </div>
+            <div class="demo-value">
+              <code>v-model: {{ JSON.stringify(basicValue) }}</code>
+              <div class="demo-hint">Поиск работает по тексту и по раскладке клавиатуры.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Множественный выбор -->
+      <div class="panel panel-default">
+        <div class="panel-heading"><h4>2. Множественный выбор</h4></div>
+        <div class="panel-body">
+          <div class="demo-row">
+            <div class="demo-control">
+              <VueSelect v-model="multiValue" :options="cities" :multiple="true" placeholder="Выберите города..." />
+            </div>
+            <div class="demo-value">
+              <code>v-model: {{ JSON.stringify(multiValue) }}</code>
+              <div class="demo-hint">
+                Повторный клик снимает выбор.<br>
+                Backspace удаляет последний тег.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Группировка -->
+      <div class="panel panel-default">
+        <div class="panel-heading"><h4>3. Группировка опций (optgroup)</h4></div>
+        <div class="panel-body">
+          <div class="demo-row">
+            <div class="demo-control">
+              <VueSelect v-model="groupedValue" :options="grouped" placeholder="Выберите страну..." />
+            </div>
+            <div class="demo-value">
+              <code>v-model: {{ JSON.stringify(groupedValue) }}</code>
+              <div class="demo-hint">Поиск фильтрует внутри групп. Пустая группа скрывается.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Асинхронный поиск + пагинация -->
+      <div class="panel panel-default">
+        <div class="panel-heading"><h4>4. Асинхронный поиск (queryFunction) + пагинация при прокрутке</h4></div>
+        <div class="panel-body">
+          <div class="demo-row">
+            <div class="demo-control">
+              <VueSelect
+                v-model="asyncValue"
+                :options="[]"
+                :query-function="asyncSearch"
+                :multiple="true"
+                placeholder="Начните вводить имя..."
+              />
+            </div>
+            <div class="demo-value">
+              <code>v-model: {{ JSON.stringify(asyncValue) }}</code>
+              <div class="demo-hint">
+                120 записей · 10 за страницу · задержка 400 мс.<br>
+                Прокрутите список — следующая страница подгрузится автоматически.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Создание тегов + токенайзер -->
+      <div class="panel panel-default">
+        <div class="panel-heading"><h4>5. Создание произвольных тегов + токенайзер</h4></div>
+        <div class="panel-body">
+          <div class="demo-row">
+            <div class="demo-control">
+              <VueSelect
+                v-model="tagsValue"
+                :options="[]"
+                :multiple="true"
+                :create-tag="createTag"
+                placeholder="Введите тег, затем Enter или запятую..."
+              />
+            </div>
+            <div class="demo-value">
+              <code>v-model: {{ JSON.stringify(tagsValue) }}</code>
+              <div class="demo-hint">
+                Токенайзер: введите «vue, react, angular» —<br>
+                все три тега создадутся автоматически.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Состояния -->
+      <div class="panel panel-default">
+        <div class="panel-heading"><h4>6. Состояния компонента</h4></div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="col-sm-4">
+              <label>Disabled</label>
+              <VueSelect v-model="disabledVal" :options="cities" :disabled="true" />
+              <div class="demo-hint">disabled=true</div>
+            </div>
+            <div class="col-sm-4">
+              <label>Ошибка валидации</label>
+              <VueSelect v-model="errorVal" :options="cities" :has-error="true" placeholder="Обязательное поле" />
+              <div class="demo-hint">has-error=true</div>
+            </div>
+            <div class="col-sm-4">
+              <label>Placeholder</label>
+              <VueSelect v-model="errorVal" :options="cities" placeholder="Выберите что-нибудь..." />
+              <div class="demo-hint">placeholder prop</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `,
+}
+
+createApp(App).mount('#app')
+</script>
+</body>
+</html>
