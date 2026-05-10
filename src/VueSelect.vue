@@ -61,7 +61,7 @@
                         {{ selectedItems[0]?.text }}
                     </span>
                     <input
-                        v-show="isOpen"
+                        v-show="isOpen && showSearchInput"
                         ref="searchInputRef"
                         class="vue-select__search vue-select__search--single"
                         v-model="searchTerm"
@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { cloneDeep } from 'lodash-es';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -248,8 +248,8 @@ const props = defineProps({
         default: '',
     },
     lang: {
-        type: String,
-        default: () => (window?.locale?.toLowerCase() ?? 'ru'),
+        type: [String, Object],
+        default: () => (typeof window !== 'undefined' ? window.locale?.toLowerCase() : 'ru') ?? 'ru',
     },
 });
 
@@ -282,11 +282,28 @@ const displayedOptions = ref([]);
 
 // ─── Computed ────────────────────────────────────────────────────────────────
 
-const phrases = computed(() =>
-    props.lang === 'ru'
-        ? { noResults: () => 'Совпадений не найдено', searching: () => 'Поиск ...' }
-        : props.lang
+const DEFAULT_PHRASES = {
+    ru: { noResults: () => 'Совпадений не найдено', searching: () => 'Поиск ...' },
+    en: { noResults: () => 'No results found', searching: () => 'Searching ...' },
+};
+
+const phrases = computed(() => {
+    if (props.lang && typeof props.lang === 'object') {
+        return { ...DEFAULT_PHRASES.ru, ...props.lang };
+    }
+
+    return DEFAULT_PHRASES[props.lang] ?? DEFAULT_PHRASES.ru;
+});
+
+const countOptions = (items) => items.reduce(
+    (count, item) => count + (item.children ? item.children.length : 1),
+    0
 );
+
+const showSearchInput = computed(() => {
+    if (props.multiple || props.createTag || props.queryFunction) return true;
+    return countOptions(props.isDefaultFromCache ? cacheData.value : props.options) >= props.minimumResultsForSearch;
+});
 
 const selectedItems = computed(() => {
     const val = props.modelValue;
@@ -343,6 +360,8 @@ const flatOptions = computed(() => {
 // ─── Cache helpers ───────────────────────────────────────────────────────────
 
 const mergeIntoCache = (items) => {
+    let changed = false;
+
     for (const item of items) {
         if (item.children) {
             const group = cacheData.value.find(c => c.text === item.text && c.children);
@@ -350,23 +369,30 @@ const mergeIntoCache = (items) => {
                 for (const child of item.children) {
                     if (!group.children.find(c => String(c.id) === String(child.id))) {
                         group.children.push(child);
+                        changed = true;
                     }
                 }
             } else {
                 cacheData.value.push(cloneDeep(item));
+                changed = true;
             }
         } else {
             if (item.id !== undefined && !cacheData.value.find(c => !c.children && String(c.id) === String(item.id))) {
                 cacheData.value.push(cloneDeep(item));
+                changed = true;
             }
         }
     }
-    emit('cache', cacheData.value);
+
+    if (changed) {
+        emit('cache', cacheData.value);
+    }
 };
 
 // ─── Search / Query ───────────────────────────────────────────────────────────
 
 let searchDebounceTimer = null;
+let searchRequestId = 0;
 
 const applyLocalFilter = (term, page = 1) => {
     const source = cloneDeep(props.isDefaultFromCache ? cacheData.value : props.options);
@@ -415,6 +441,8 @@ const applyLocalFilter = (term, page = 1) => {
 };
 
 const loadOptions = async (term = '', page = 1, append = false) => {
+    const requestId = ++searchRequestId;
+
     if (!append) {
         displayedOptions.value = [];
     }
@@ -429,6 +457,10 @@ const loadOptions = async (term = '', page = 1, append = false) => {
         // Асинхронный запрос
         await new Promise((resolve) => {
             props.queryFunction({ term, page }, (data) => {
+                if (requestId !== searchRequestId) {
+                    resolve();
+                    return;
+                }
                 mergeIntoCache(data.results || []);
                 const merged = mergeOptionLists(
                     tagResults,
@@ -472,9 +504,13 @@ const removeOldTags = () => {
     const selectedIds = (Array.isArray(props.modelValue) ? props.modelValue : [props.modelValue])
         .filter(Boolean)
         .map(String);
-    cacheData.value = cacheData.value.filter(
+    const nextCache = cacheData.value.filter(
         opt => !opt.isTag || selectedIds.includes(String(opt.id))
     );
+    if (nextCache.length !== cacheData.value.length) {
+        cacheData.value = nextCache;
+        emit('cache', cacheData.value);
+    }
 };
 
 // Tokenizer — разбивает term по разделителю и авто-добавляет теги
@@ -538,6 +574,7 @@ const closeDropdown = () => {
     isOpen.value = false;
     searchTerm.value = '';
     focusedIndex.value = -1;
+    searchRequestId++;
     destroyPaginationObserver();
 };
 
@@ -653,6 +690,8 @@ const onSearchKeydown = (e) => {
 };
 
 const onSearchInput = async () => {
+    emit('search', searchTerm.value);
+
     // Tokenizer
     const processed = processTokenizer(searchTerm.value);
     if (processed !== searchTerm.value) {
@@ -701,10 +740,6 @@ watch(() => props.options, (newOptions) => {
     if (!newOptions) return;
     mergeIntoCache(newOptions);
     if (isOpen.value) loadOptions(searchTerm.value, 1);
-}, { deep: true });
-
-watch(cacheData, () => {
-    emit('cache', cacheData.value);
 }, { deep: true });
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────

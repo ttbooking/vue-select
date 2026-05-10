@@ -146,6 +146,21 @@ describe('VueSelect', () => {
       await openDropdown(wrapper)
       expect(wrapper.find('.vue-select__status').text()).toBe('Совпадений не найдено')
     })
+
+    it('supports English status messages', async () => {
+      wrapper = factory({ options: [], lang: 'en' })
+      await openDropdown(wrapper)
+      expect(wrapper.find('.vue-select__status').text()).toBe('No results found')
+    })
+
+    it('supports custom phrase objects', async () => {
+      wrapper = factory({
+        options: [],
+        lang: { noResults: () => 'Empty', searching: () => 'Loading' },
+      })
+      await openDropdown(wrapper)
+      expect(wrapper.find('.vue-select__status').text()).toBe('Empty')
+    })
   })
 
   // ── Single selection ───────────────────────────────────────────────────────
@@ -263,6 +278,25 @@ describe('VueSelect', () => {
       await flushPromises()
       expect(searchFn).toHaveBeenCalled()
       expect(wrapper.find('.vue-select__status').text()).toBe('Совпадений не найдено')
+    })
+
+    it('emits search event on input', async () => {
+      wrapper = factory()
+      await openDropdown(wrapper)
+      await wrapper.find('.vue-select__search').setValue('Apple')
+      expect(wrapper.emitted('search')?.[0]).toEqual(['Apple'])
+    })
+
+    it('hides single-mode search input below minimumResultsForSearch', async () => {
+      wrapper = factory({ minimumResultsForSearch: 10 })
+      await openDropdown(wrapper)
+      expect(wrapper.find('.vue-select__search').isVisible()).toBe(false)
+    })
+
+    it('shows single-mode search input when minimumResultsForSearch is reached', async () => {
+      wrapper = factory({ options: MANY_OPTIONS, minimumResultsForSearch: 10 })
+      await openDropdown(wrapper)
+      expect(wrapper.find('.vue-select__search').isVisible()).toBe(true)
     })
   })
 
@@ -434,6 +468,29 @@ describe('VueSelect', () => {
       const lastCache = cacheEmits[cacheEmits.length - 1][0]
       expect(lastCache.some(item => item.id === 'r2')).toBe(true)
     })
+
+    it('ignores stale async search responses', async () => {
+      const callbacks = []
+      const queryFn = vi.fn().mockImplementation((_, cb) => callbacks.push(cb))
+      wrapper = factory({ options: [], queryFunction: queryFn })
+      await openDropdown(wrapper)
+
+      await wrapper.find('.vue-select__search').setValue('old')
+      vi.advanceTimersByTime(300)
+      await flushPromises()
+
+      await wrapper.find('.vue-select__search').setValue('new')
+      vi.advanceTimersByTime(300)
+      await flushPromises()
+
+      callbacks[1]({ results: [{ id: 'new', text: 'New result' }], pagination: { more: false } })
+      await flushPromises()
+      expect(wrapper.find('.vue-select__option').text()).toBe('New result')
+
+      callbacks[0]({ results: [{ id: 'old', text: 'Old result' }], pagination: { more: false } })
+      await flushPromises()
+      expect(wrapper.find('.vue-select__option').text()).toBe('New result')
+    })
   })
 
   // ── Keyboard navigation ────────────────────────────────────────────────────
@@ -552,11 +609,11 @@ describe('VueSelect', () => {
       expect(wrapper.find('.vue-select__single-value').text()).toBe('New Item')
     })
 
-    it('emits cache event after selection triggers mergeIntoCache', async () => {
+    it('does not emit cache event when selecting an already cached option', async () => {
       wrapper = factory()
       await openDropdown(wrapper)
       await wrapper.findAll('.vue-select__option')[0].trigger('click')
-      expect(wrapper.emitted('cache')).toBeTruthy()
+      expect(wrapper.emitted('cache')).toBeFalsy()
     })
   })
 })

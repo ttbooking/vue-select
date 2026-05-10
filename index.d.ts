@@ -20,6 +20,11 @@ export interface QueryResult {
   }
 }
 
+export interface VueSelectPhrases {
+  noResults?: () => string
+  searching?: () => string
+}
+
 export interface VueSelectProps {
   /** v-model value. String/number for single, array for multiple. */
   modelValue?: string | number | (string | number)[] | null
@@ -59,7 +64,7 @@ export interface VueSelectProps {
   hasError?: boolean
   placeholder?: string
   /** UI locale. Accepts `'ru'` | `'en'` or a custom phrases object. Default: `'ru'`. */
-  lang?: string
+  lang?: 'ru' | 'en' | string | VueSelectPhrases
 }
 
 export type VueSelectEmits = {
