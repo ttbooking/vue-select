@@ -54,6 +54,7 @@ describe('VueSelect', () => {
   afterEach(() => {
     wrapper?.unmount()
     wrapper = null
+    delete window.locale
   })
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -107,6 +108,13 @@ describe('VueSelect', () => {
   // ── Dropdown ───────────────────────────────────────────────────────────────
 
   describe('Dropdown open / close', () => {
+    it('uses normalized window.locale as default language', async () => {
+      window.locale = 'en-US'
+      wrapper = factory({ options: [] })
+      await openDropdown(wrapper)
+      expect(wrapper.find('.vue-select__status').text()).toBe('No results found')
+    })
+
     it('opens on control click', async () => {
       wrapper = factory()
       await openDropdown(wrapper)

@@ -23,6 +23,7 @@ export interface QueryResult {
 export interface VueSelectPhrases {
   noResults?: () => string
   searching?: () => string
+  clear?: () => string
 }
 
 export interface VueSelectProps {
@@ -63,7 +64,7 @@ export interface VueSelectProps {
   /** Adds `has-error` CSS class to the root element (Bootstrap 3 validation style). */
   hasError?: boolean
   placeholder?: string
-  /** UI locale. Accepts `'ru'` | `'en'` or a custom phrases object. Default: `'ru'`. */
+  /** UI locale. Accepts `'ru'` | `'en'` or a custom phrases object. Default: normalized `window.locale` or `'ru'`. */
   lang?: 'ru' | 'en' | string | VueSelectPhrases
 }
 

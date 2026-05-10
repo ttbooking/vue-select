@@ -1,69 +1,63 @@
 # VueSelect
 
-Компонент выпадающего списка на **Vue 3** (Composition API / `<script setup>`).  
-Полная замена jQuery + select2 — без сторонних зависимостей кроме lodash-es.
+[English documentation](README.en.md)
 
----
+Компонент выпадающего списка на **Vue 3** (Composition API / `<script setup>`). Полная замена jQuery + Select2 без сторонних runtime-зависимостей, кроме `lodash-es`.
+
+По умолчанию компонент берёт язык из `window.locale` и нормализует его до базового кода (`ru-RU` -> `ru`, `en-US` -> `en`). Если глобальная локаль не задана или не поддерживается, используется русский язык. Английский интерфейс можно включить явно через `lang="en"` или через объект с собственными фразами.
 
 ## Содержание
 
 - [Возможности](#возможности)
-- [Подключение](#подключение)
+- [Установка](#установка)
+- [Использование](#использование)
 - [Пропсы](#пропсы)
 - [События](#события)
 - [Структура опций](#структура-опций)
-- [Примеры использования](#примеры-использования)
-  - [Одиночный выбор](#1-одиночный-выбор)
-  - [Множественный выбор](#2-множественный-выбор)
-  - [Группировка опций](#3-группировка-опций)
-  - [Асинхронный поиск](#4-асинхронный-поиск-queryfunction)
-  - [Создание тегов](#5-создание-тегов-createtag)
-  - [Токенайзер](#6-токенайзер)
-  - [Кастомный поиск](#7-кастомный-поиск-searchfunction)
-  - [Кэш](#8-кэш)
-  - [Состояния](#9-состояния-disabled--has-error)
-  - [Совместимость с формами](#10-совместимость-с-формами-name)
-  - [Кастомный язык](#кастомный-язык)
+- [Примеры](#примеры)
+- [Локализация](#локализация)
 - [Клавиатурная навигация](#клавиатурная-навигация)
 - [Демо](#демо)
 - [Тесты](#тесты)
-- [Миграция с select2](#миграция-с-select2)
-
----
+- [Миграция с Select2](#миграция-с-select2)
 
 ## Возможности
 
-- `v-model` — одиночный и множественный выбор
-- Фильтрация с переключением раскладки клавиатуры (RU ↔ EN)
-- Кастомная функция поиска (`searchFunction`)
-- Асинхронный поиск с пагинацией (`queryFunction`)
-- Группировка опций (optgroup через `children`)
-- Создание произвольных тегов (`createTag`)
-- Токенайзер — авто-разбивка по символу-разделителю
-- Пагинация при прокрутке (IntersectionObserver, 20 элементов за раз)
-- Кэш уже загруженных данных
-- Совместимость с HTML-формами (скрытый `<select>`)
+- `v-model` для одиночного и множественного выбора
+- Фильтрация с переключением раскладки клавиатуры RU <-> EN
+- Кастомная функция поиска через `searchFunction`
+- Асинхронный поиск с пагинацией через `queryFunction`
+- Группировка опций через `children`
+- Создание произвольных тегов через `createTag`
+- Токенайзер для создания нескольких тегов из одной строки
+- Пагинация при прокрутке через `IntersectionObserver`
+- Кэш уже загруженных или заранее известных опций
+- Совместимость с HTML-формами через скрытый `<select>`
 - Стили под Bootstrap 3
 - Полная клавиатурная навигация
+- Автоопределение языка через `window.locale` с русским fallback
 
----
+## Установка
 
-## Подключение
+```bash
+npm install @ttbooking/vue-select
+```
 
-### В Vue SFC-проекте (Vite / Webpack)
+Подключите компонент и стили:
 
 ```vue
 <script setup>
-import VueSelect from '@/components/VueSelect.vue'
+import VueSelect from '@ttbooking/vue-select'
+import '@ttbooking/vue-select/style.css'
 </script>
 ```
 
-### Глобальная регистрация
+Глобальная регистрация:
 
 ```js
-// main.js
 import { createApp } from 'vue'
-import VueSelect from './components/VueSelect.vue'
+import VueSelect from '@ttbooking/vue-select'
+import '@ttbooking/vue-select/style.css'
 import App from './App.vue'
 
 createApp(App)
@@ -71,95 +65,13 @@ createApp(App)
   .mount('#app')
 ```
 
-### Без сборки (CDN, plain HTML)
-
-```html
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-<script>
-  // Компонент определяется как объект с полем template
-  // Готовые примеры — demo.html и demo2.html в репозитории
-</script>
-```
-
----
-
-## Пропсы
-
-| Пропс | Тип | По умолчанию | Описание |
-|---|---|---|---|
-| `modelValue` | `String \| Number \| Array` | `null` | Выбранное значение (v-model) |
-| `options` | `Array` | `[]` | Массив опций `{ id, text }` |
-| `multiple` | `Boolean` | `false` | Режим множественного выбора |
-| `placeholder` | `String` | `''` | Текст-заглушка при пустом значении |
-| `disabled` | `Boolean` | `false` | Отключает компонент |
-| `hasError` | `Boolean` | `false` | Добавляет класс `has-error` (красная рамка) |
-| `name` | `String` | `null` | Имя для скрытого `<select>` (HTML-формы) |
-| `selectClass` | `String \| Object` | `''` | Дополнительный класс для элемента контрола |
-| `searchFunction` | `Function` | встроенная | Функция фильтрации: `(term) => (item) => Boolean` |
-| `queryFunction` | `Function` | `null` | Асинхронный поиск: `({ term, page }, callback) => void` |
-| `createTag` | `Function` | `null` | Создание тега: `({ term }) => { id, text } \| null` |
-| `tagSeparator` | `RegExp` | `/[^\d\wа-яё]/iu` | Разделитель для токенайзера |
-| `cache` | `Array` | `null` | Начальный кэш (если отличается от `options`) |
-| `isDefaultFromCache` | `Boolean` | `false` | Фильтровать по кэшу, а не по `options` |
-| `minimumResultsForSearch` | `Number` | `0` | Мин. количество опций для показа поля поиска |
-| `lang` | `String \| Object` | `'ru'` | Язык: `'ru'`, `'en'` или объект с фразами |
-
----
-
-## События
-
-| Событие | Payload | Описание |
-|---|---|---|
-| `update:modelValue` | `id \| id[]` | Изменение выбранного значения (v-model) |
-| `cache` | `Array` | Кэш обновился — новые опции загружены или добавлены |
-
----
-
-## Структура опций
-
-### Плоский список
-
-```js
-const options = [
-  { id: '1', text: 'Москва' },
-  { id: '2', text: 'Санкт-Петербург' },
-  { id: '3', text: 'Казань' },
-]
-```
-
-> `id` может быть строкой или числом — при сравнении всегда приводится к строке.
-
-### С группировкой
-
-```js
-const options = [
-  {
-    text: 'Европа',       // заголовок группы, id не нужен
-    children: [
-      { id: 'de', text: 'Германия' },
-      { id: 'fr', text: 'Франция' },
-    ],
-  },
-  {
-    text: 'Азия',
-    children: [
-      { id: 'cn', text: 'Китай' },
-      { id: 'jp', text: 'Япония' },
-    ],
-  },
-]
-```
-
----
-
-## Примеры использования
-
-### 1. Одиночный выбор
+## Использование
 
 ```vue
 <script setup>
 import { ref } from 'vue'
-import VueSelect from '@/components/VueSelect.vue'
+import VueSelect from '@ttbooking/vue-select'
+import '@ttbooking/vue-select/style.css'
 
 const city = ref(null)
 const cities = [
@@ -173,55 +85,62 @@ const cities = [
   <VueSelect
     v-model="city"
     :options="cities"
+    lang="ru"
     placeholder="Выберите город..."
   />
-  <!-- city === 'msk' после выбора -->
 </template>
 ```
 
----
+## Пропсы
 
-### 2. Множественный выбор
+| Пропс | Тип | По умолчанию | Описание |
+|---|---|---|---|
+| `modelValue` | `String \| Number \| Array` | `null` | Выбранное значение для `v-model`. Для одиночного режима используется скаляр, для множественного - массив. |
+| `options` | `Array` | `[]` | Массив опций `{ id, text }` или групп `{ text, children }`. |
+| `multiple` | `Boolean` | `false` | Включает множественный выбор. |
+| `placeholder` | `String` | `''` | Текст-заглушка при пустом значении. |
+| `disabled` | `Boolean` | `false` | Отключает компонент. |
+| `hasError` | `Boolean` | `false` | Добавляет класс `has-error` для Bootstrap 3 validation styles. |
+| `name` | `String` | `null` | Имя скрытого нативного `<select>` для отправки обычной HTML-формы. |
+| `selectClass` | `String \| Object` | `''` | Дополнительный класс или объект классов для основного контрола. |
+| `searchFunction` | `Function` | встроенная | Фабрика локального поиска: `(term) => (item) => Boolean`. |
+| `queryFunction` | `Function` | `null` | Асинхронный поиск: `({ term, page }, callback) => void`. |
+| `createTag` | `Function` | `null` | Создание тега: `({ term }) => { id, text } \| null`. |
+| `tagSeparator` | `RegExp` | `/[^\d\wа-яё]/iu` | Разделитель для токенайзера. |
+| `cache` | `Array` | `null` | Начальный кэш опций. Удобно, когда выбранное значение уже известно. |
+| `isDefaultFromCache` | `Boolean` | `false` | Если `true`, пустой локальный поиск идёт по кэшу, а не по `options`. |
+| `minimumResultsForSearch` | `Number` | `0` | Минимальное число опций, при котором показывается поле поиска. |
+| `lang` | `String \| Object` | `window.locale` или `'ru'` | Язык интерфейса: `'ru'`, `'en'` или объект с фразами. |
 
-```vue
-<script setup>
-import { ref } from 'vue'
+## События
 
-const selected = ref([])
+| Событие | Payload | Описание |
+|---|---|---|
+| `update:modelValue` | `id \| id[] \| null` | Изменение выбранного значения. |
+| `cache` | `Array` | Внутренний кэш был обновлён. |
+| `search` | `String` | Изменение строки поиска. |
+
+## Структура опций
+
+Плоский список:
+
+```js
 const options = [
-  { id: '1', text: 'Vue' },
-  { id: '2', text: 'React' },
-  { id: '3', text: 'Angular' },
+  { id: '1', text: 'Москва' },
+  { id: '2', text: 'Санкт-Петербург' },
+  { id: '3', text: 'Казань' },
 ]
-</script>
-
-<template>
-  <VueSelect
-    v-model="selected"
-    :options="options"
-    :multiple="true"
-    placeholder="Выберите фреймворки..."
-  />
-  <!-- selected === ['1', '3'] после выбора двух -->
-</template>
 ```
 
----
+Группировка:
 
-### 3. Группировка опций
-
-```vue
-<script setup>
-import { ref } from 'vue'
-
-const country = ref(null)
-const countries = [
+```js
+const options = [
   {
     text: 'Европа',
     children: [
       { id: 'de', text: 'Германия' },
       { id: 'fr', text: 'Франция' },
-      { id: 'it', text: 'Италия' },
     ],
   },
   {
@@ -232,25 +151,64 @@ const countries = [
     ],
   },
 ]
+```
+
+`id` может быть строкой или числом. При сравнении значения приводятся к строке.
+
+## Примеры
+
+### Одиночный выбор
+
+```vue
+<script setup>
+import { ref } from 'vue'
+
+const city = ref(null)
+const cities = [
+  { id: 'msk', text: 'Москва' },
+  { id: 'spb', text: 'Санкт-Петербург' },
+  { id: 'nsk', text: 'Новосибирск' },
+]
 </script>
 
 <template>
   <VueSelect
-    v-model="country"
-    :options="countries"
-    placeholder="Выберите страну..."
+    v-model="city"
+    :options="cities"
+    lang="ru"
+    placeholder="Выберите город..."
   />
 </template>
 ```
 
-> При поиске группы с нулевым числом совпадений скрываются автоматически.
+### Множественный выбор
 
----
+```vue
+<script setup>
+import { ref } from 'vue'
 
-### 4. Асинхронный поиск (queryFunction)
+const selected = ref([])
+const options = [
+  { id: 'vue', text: 'Vue' },
+  { id: 'react', text: 'React' },
+  { id: 'angular', text: 'Angular' },
+]
+</script>
 
-`queryFunction` вызывается при каждом изменении строки поиска (с дебаунсом 250 мс).  
-Получает `{ term, page }` и колбэк, в который передаются `{ results, pagination }`.
+<template>
+  <VueSelect
+    v-model="selected"
+    :options="options"
+    :multiple="true"
+    lang="ru"
+    placeholder="Выберите фреймворки..."
+  />
+</template>
+```
+
+### Асинхронный поиск
+
+`queryFunction` вызывается после debounce 250 мс при изменении строки поиска. Функция получает `{ term, page }` и должна вызвать callback с `{ results, pagination }`.
 
 ```vue
 <script setup>
@@ -260,10 +218,10 @@ const user = ref(null)
 
 const searchUsers = ({ term, page }, callback) => {
   fetch(`/api/users?q=${encodeURIComponent(term)}&page=${page}`)
-    .then(r => r.json())
+    .then(response => response.json())
     .then(data => callback({
-      results:    data.items,              // [{ id, text }, ...]
-      pagination: { more: data.has_more }, // true — подгрузить следующую страницу
+      results: data.items,
+      pagination: { more: data.has_more },
     }))
 }
 </script>
@@ -273,19 +231,17 @@ const searchUsers = ({ term, page }, callback) => {
     v-model="user"
     :options="[]"
     :query-function="searchUsers"
+    lang="ru"
     placeholder="Начните вводить имя..."
   />
 </template>
 ```
 
-> При пустом поиске `queryFunction` **не вызывается** — показываются данные из `options` / кэша.  
-> Прокрутка до конца списка автоматически запрашивает следующую страницу (`page++`).
+При пустой строке поиска `queryFunction` не вызывается. Компонент показывает локальные `options` или данные из кэша. При прокрутке до конца dropdown запрашивается следующая страница.
 
----
+### Создание тегов
 
-### 5. Создание тегов (createTag)
-
-`createTag` должна вернуть `{ id, text }` или `null` (чтобы скрыть опцию создания).
+`createTag` должна вернуть `{ id, text }` для создания тега или `null`, чтобы скрыть опцию создания.
 
 ```vue
 <script setup>
@@ -294,8 +250,8 @@ import { ref } from 'vue'
 const tags = ref([])
 
 const createTag = ({ term }) => {
-  const t = term.trim()
-  return t ? { id: `tag:${t}`, text: t } : null
+  const text = term.trim()
+  return text ? { id: `tag:${text}`, text } : null
 }
 </script>
 
@@ -305,20 +261,18 @@ const createTag = ({ term }) => {
     :options="[]"
     :multiple="true"
     :create-tag="createTag"
+    lang="ru"
     placeholder="Введите тег и нажмите Enter..."
   />
 </template>
 ```
 
----
+### Токенайзер
 
-### 6. Токенайзер
-
-Когда задан `createTag`, компонент автоматически разбивает строку по разделителю.  
-По умолчанию разделитель — любой не-буквенный символ (запятая, пробел, точка с запятой и т.д.).
+Когда задан `createTag`, компонент может разбивать ввод по `tagSeparator` и создавать несколько тегов сразу.
 
 ```vue
-<!-- Ввод «vue, react, angular» — создаст сразу три тега -->
+<!-- Ввод "vue, react, angular" создаст три тега. -->
 <VueSelect
   v-model="tags"
   :options="[]"
@@ -326,7 +280,7 @@ const createTag = ({ term }) => {
   :create-tag="({ term }) => ({ id: term, text: term })"
 />
 
-<!-- Только точка с запятой как разделитель -->
+<!-- Только точка с запятой как разделитель. -->
 <VueSelect
   v-model="tags"
   :options="[]"
@@ -336,14 +290,11 @@ const createTag = ({ term }) => {
 />
 ```
 
----
+### Кастомный локальный поиск
 
-### 7. Кастомный поиск (searchFunction)
-
-Встроенная функция поиска нечувствительна к регистру, поддерживает несколько слов через пробел и переключение раскладки клавиатуры RU ↔ EN.
+Встроенный поиск нечувствителен к регистру, поддерживает несколько слов через пробел и учитывает ввод в неправильной RU/EN раскладке.
 
 ```vue
-<!-- Поиск только по началу строки -->
 <VueSelect
   v-model="value"
   :options="options"
@@ -353,37 +304,27 @@ const createTag = ({ term }) => {
 />
 ```
 
-```vue
-<!-- Поиск сразу по нескольким полям (объединённым в text) -->
-<!-- options: [{ id: 1, text: 'Иванов Иван — Бухгалтерия' }] -->
-<VueSelect
-  v-model="value"
-  :options="employees"
-  :search-function="(term) => (item) =>
-    item.text.toLowerCase().includes(term.toLowerCase())
-  "
-/>
-```
+### Кэш
 
----
-
-### 8. Кэш
-
-Используется когда список загружается с сервера, а начальное выбранное значение уже известно — чтобы сразу отобразить текст без дополнительного запроса.
+`cache` используется, когда список загружается с сервера, а начальное выбранное значение уже известно. Так компонент сразу показывает label без дополнительного запроса.
 
 ```vue
 <script setup>
 import { ref } from 'vue'
 
-// Заранее известные записи — чтобы показать label при монтировании
+const selected = ref('42')
 const initialCache = [
   { id: '42', text: 'Иванов Иван' },
   { id: '99', text: 'Петров Пётр' },
 ]
-const selected = ref('42') // будет показан 'Иванов Иван' сразу
 
 const searchRemote = ({ term, page }, callback) => {
-  /* ... запрос к API ... */
+  fetch(`/api/users?q=${encodeURIComponent(term)}&page=${page}`)
+    .then(response => response.json())
+    .then(data => callback({
+      results: data.items,
+      pagination: { more: data.more },
+    }))
 }
 </script>
 
@@ -393,184 +334,148 @@ const searchRemote = ({ term, page }, callback) => {
     :options="[]"
     :cache="initialCache"
     :query-function="searchRemote"
+    lang="ru"
     @cache="cache => localStorage.setItem('select-cache', JSON.stringify(cache))"
   />
 </template>
 ```
 
-> Событие `@cache` срабатывает при каждом обновлении кэша — удобно для сохранения между сессиями.
-
----
-
-### 9. Состояния (disabled / has-error)
+### Состояния и формы
 
 ```vue
-<!-- Заблокированный -->
 <VueSelect v-model="value" :options="options" :disabled="true" />
 
-<!-- Ошибка валидации -->
 <VueSelect v-model="value" :options="options" :has-error="true" />
 
-<!-- Интеграция с Bootstrap 3 form-group -->
-<div class="form-group" :class="{ 'has-error': errors.city }">
-  <label class="control-label">Город</label>
-  <VueSelect
-    v-model="form.city"
-    :options="cities"
-    :has-error="!!errors.city"
-    placeholder="Выберите город..."
-  />
-  <span v-if="errors.city" class="help-block">{{ errors.city }}</span>
-</div>
-```
-
----
-
-### 10. Совместимость с формами (name)
-
-При указании `name` компонент рендерит скрытый нативный `<select>` — форма отправляется стандартным способом.
-
-```vue
 <form method="POST" action="/save">
   <VueSelect
     v-model="cityId"
     :options="cities"
     name="city_id"
+    lang="ru"
     placeholder="Выберите город..."
   />
-  <!-- <select name="city_id" style="display:none"> рендерится автоматически -->
   <button type="submit">Сохранить</button>
 </form>
 ```
 
----
+Если указан `name`, компонент рендерит скрытый нативный `<select>`, поэтому значение отправляется обычной HTML-формой.
 
-### Кастомный язык
+## Локализация
+
+Если `window.locale` не задан, используется русский язык:
 
 ```vue
-<!-- Английский -->
-<VueSelect v-model="value" :options="options" lang="en" />
+<VueSelect v-model="value" :options="options" />
+```
 
-<!-- Произвольные фразы -->
+Английский язык:
+
+```vue
+<VueSelect v-model="value" :options="options" lang="en" />
+```
+
+Собственные фразы:
+
+```vue
 <VueSelect
   v-model="value"
   :options="options"
   :lang="{
     noResults: () => 'Ничего не найдено',
     searching: () => 'Загружаю...',
+    clear: () => 'Очистить значение',
   }"
 />
 ```
-
----
 
 ## Клавиатурная навигация
 
 | Клавиша | Действие |
 |---|---|
-| `Enter` / `Space` / `↓` | Открыть список (фокус на контроле) |
-| `Escape` | Закрыть список |
-| `↓` / `↑` | Перемещение по опциям |
-| `Enter` | Выбрать сфокусированную опцию |
-| `Backspace` | Удалить последний тег (multiple, поле поиска пустое) |
-
----
+| `Enter` / `Space` / `ArrowDown` | Открыть список, когда фокус на контроле. |
+| `Escape` | Закрыть список. |
+| `ArrowDown` / `ArrowUp` | Перемещение по опциям. |
+| `Enter` | Выбрать сфокусированную опцию. |
+| `Backspace` | Удалить последний тег в multiple-режиме, когда поле поиска пустое. |
 
 ## Демо
 
-Все файлы открываются напрямую в браузере — сборка не нужна.
+Файлы можно открыть напрямую в браузере:
 
 | Файл | Описание |
 |---|---|
-| `demo.html` | Все режимы: одиночный, множественный, группы, async + пагинация, теги + токенайзер, состояния |
-| `demo2.html` | Стресс-тест: одиночный и множественный выбор на **4 020 записях** |
-
----
+| `demo.html` | Основные режимы: одиночный, множественный, группы, async + пагинация, теги, токенайзер, состояния. |
+| `demo2.html` | Стресс-тест: одиночный и множественный выбор на 4 020 записях. |
 
 ## Тесты
 
 ```bash
-npm install        # установить зависимости
-npm test           # запустить 56 тестов
-npm run test:watch # watch-режим
+npm install
+npm test
+npm run test:watch
 ```
 
-Покрытие тестами:
+Тесты покрывают rendering, dropdown, одиночный и множественный выбор, фильтрацию, создание тегов, группы, async search, клавиатурную навигацию, пагинацию и кэш.
 
-| Группа | Что проверяется |
-|---|---|
-| Rendering | Placeholder, selected value/tags, has-error, disabled, native select |
-| Dropdown | Открытие/закрытие, Escape, клик снаружи, noResults |
-| Single selection | Emit, закрытие после выбора, кнопка очистки |
-| Multiple selection | Добавление, снятие, удаление тегов, Backspace, clearAll |
-| Search filtering | Дебаунс 250 мс, noResults, кастомный searchFunction |
-| Tag creation | Показ опции тега, выбор, createTag=null, токенайзер |
-| Option grouping | Лейблы групп, дочерние элементы, фильтрация, скрытие пустых групп |
-| queryFunction | Вызов с term+page, результаты в DOM, loading-статус, cache emit |
-| Keyboard nav | ArrowDown/Up, Enter, Escape, Space |
-| Pagination | Создание IntersectionObserver, загрузка страницы 2, добавление к списку |
-| Cache | Инициализация из options и cache prop, обновление при смене props |
-
----
-
-## Миграция с select2
+## Миграция с Select2
 
 ### v-model
 
 ```html
-<!-- Было (jQuery select2 / Vue 2) -->
+<!-- Было: jQuery Select2 / Vue 2 style -->
 <vue-select :value="val" @input="val = $event" />
 
-<!-- Стало (Vue 3) -->
+<!-- Стало: Vue 3 -->
 <VueSelect v-model="val" />
 ```
 
-### queryFunction
+### Async search
 
 ```js
-// Было (select2 ajax config)
+// Было: Select2 ajax config
 ajax: {
   url: '/api/search',
-  data: (params) => ({ q: params.term, page: params.page }),
-  processResults: (data) => ({
-    results:    data.items,
+  data: params => ({ q: params.term, page: params.page }),
+  processResults: data => ({
+    results: data.items,
     pagination: { more: data.more },
   }),
 }
 
-// Стало
+// Стало: VueSelect
 const queryFunction = ({ term, page }, callback) => {
-  fetch(`/api/search?q=${term}&page=${page}`)
-    .then(r => r.json())
+  fetch(`/api/search?q=${encodeURIComponent(term)}&page=${page}`)
+    .then(response => response.json())
     .then(data => callback({
-      results:    data.items,
+      results: data.items,
       pagination: { more: data.more },
     }))
 }
 ```
 
-### createTag
+### Tags
 
 ```js
-// Было (select2)
-createTag: (params) => ({ id: params.term, text: params.term, newTag: true })
+// Было: Select2
+createTag: params => ({ id: params.term, text: params.term, newTag: true })
 
-// Стало
+// Стало: VueSelect
 const createTag = ({ term }) => ({ id: term, text: term })
 ```
 
 ### Таблица соответствий
 
-| select2 | VueSelect | Примечание |
+| Select2 | VueSelect | Примечание |
 |---|---|---|
-| `value` + `@input` | `v-model` | |
-| `ajax` | `queryFunction` | |
-| `tags: true` | `createTag` | |
-| `tokenSeparators` | `tagSeparator` | RegExp вместо массива символов |
-| `data` | `options` | |
-| `allowClear` | — | Кнопка `×` появляется автоматически |
-| `disabled` | `disabled` | |
-| `language` | `lang` | Строка `'ru'`/`'en'` или объект фраз |
-| `minimumInputLength` | логика в `queryFunction` | |
-| `templateResult` | — | Кастомизация через CSS-классы |
-| `dropdownParent` | — | Не нужен |
+| `value` + `@input` | `v-model` | Vue 3 model binding. |
+| `ajax` | `queryFunction` | Callback-based async search. |
+| `tags: true` | `createTag` | Верните `null`, чтобы отклонить тег. |
+| `tokenSeparators` | `tagSeparator` | Используется `RegExp`, а не массив символов. |
+| `data` | `options` | Статические локальные данные. |
+| `allowClear` | встроено | Кнопка очистки появляется автоматически, когда значение выбрано. |
+| `disabled` | `disabled` | Такое же поведение. |
+| `language` | `lang` | `'en'`, `'ru'` или объект с фразами. |
+| `minimumInputLength` | логика в `queryFunction` | Ограничивайте запросы внутри своей функции. |
+| `templateResult` | CSS customization | Кастомизация через классы и CSS. |
+| `dropdownParent` | не нужен | Dropdown рендерится внутри компонента. |

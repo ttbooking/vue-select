@@ -84,7 +84,7 @@
                     class="vue-select__clear"
                     @click.stop="clearAll"
                     @mousedown.prevent
-                    title="Очистить"
+                    :title="phrases.clear()"
                 >&times;</span>
                 <span class="vue-select__separator"></span>
                 <span class="vue-select__arrow" :class="{ 'vue-select__arrow--up': isOpen }">&#9660;</span>
@@ -249,7 +249,12 @@ const props = defineProps({
     },
     lang: {
         type: [String, Object],
-        default: () => (typeof window !== 'undefined' ? window.locale?.toLowerCase() : 'ru') ?? 'ru',
+        default: () => {
+            const locale = typeof window !== 'undefined'
+                ? window.locale?.toLowerCase()
+                : null;
+            return locale?.split('-')[0] || 'ru';
+        },
     },
 });
 
@@ -283,8 +288,8 @@ const displayedOptions = ref([]);
 // ─── Computed ────────────────────────────────────────────────────────────────
 
 const DEFAULT_PHRASES = {
-    ru: { noResults: () => 'Совпадений не найдено', searching: () => 'Поиск ...' },
-    en: { noResults: () => 'No results found', searching: () => 'Searching ...' },
+    ru: { noResults: () => 'Совпадений не найдено', searching: () => 'Поиск ...', clear: () => 'Очистить' },
+    en: { noResults: () => 'No results found', searching: () => 'Searching ...', clear: () => 'Clear' },
 };
 
 const phrases = computed(() => {
