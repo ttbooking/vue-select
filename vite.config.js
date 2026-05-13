@@ -17,6 +17,8 @@ export default defineConfig(({ command }) => ({
         output: {
           globals: { vue: 'Vue' },
           exports: 'named',
+          assetFileNames: (assetInfo) =>
+            assetInfo.name === 'style.css' ? 'vue-select.css' : assetInfo.name,
         },
       },
     },
