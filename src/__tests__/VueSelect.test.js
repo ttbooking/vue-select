@@ -121,6 +121,13 @@ describe('VueSelect', () => {
       expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
     })
 
+    it('opens when pointer starts on selected value text', async () => {
+      wrapper = factory({ modelValue: '2', selectClass: 'form-control' })
+      await wrapper.find('.vue-select__single-value').trigger('pointerdown')
+      await flushPromises()
+      expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
+    })
+
     it('closes on second click (toggle)', async () => {
       wrapper = factory()
       await openDropdown(wrapper)
@@ -181,6 +188,13 @@ describe('VueSelect', () => {
       expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['2'])
     })
 
+    it('emits update:modelValue when pointer starts on option text area', async () => {
+      wrapper = factory({ selectClass: 'form-control' })
+      await openDropdown(wrapper)
+      await wrapper.findAll('.vue-select__option')[1].trigger('pointerdown')
+      expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['2'])
+    })
+
     it('closes dropdown after selection', async () => {
       wrapper = factory()
       await openDropdown(wrapper)
@@ -205,7 +219,7 @@ describe('VueSelect', () => {
 
     it('clearAll emits null', async () => {
       wrapper = factory({ modelValue: '1' })
-      await wrapper.find('.vue-select__clear').trigger('click')
+      await wrapper.find('.vue-select__clear').trigger('pointerdown')
       expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([null])
     })
   })
@@ -238,13 +252,13 @@ describe('VueSelect', () => {
 
     it('removes tag on × click', async () => {
       wrapper = factory({ multiple: true, modelValue: ['1', '2'] })
-      await wrapper.findAll('.vue-select__tag-remove')[0].trigger('click')
+      await wrapper.findAll('.vue-select__tag-remove')[0].trigger('pointerdown')
       expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([['2']])
     })
 
     it('clearAll emits empty array', async () => {
       wrapper = factory({ multiple: true, modelValue: ['1', '2'] })
-      await wrapper.find('.vue-select__clear').trigger('click')
+      await wrapper.find('.vue-select__clear').trigger('pointerdown')
       expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([[]])
     })
 

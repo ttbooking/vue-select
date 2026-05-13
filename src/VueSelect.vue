@@ -21,7 +21,8 @@
         <div
             class="vue-select__control"
             :class="[selectClass, { 'vue-select__control--focus': isOpen }]"
-            @click="!disabled && toggleDropdown()"
+            @pointerdown.prevent="!disabled && toggleDropdown()"
+            @click="onControlClick"
             @keydown="onControlKeydown"
             :tabindex="disabled ? -1 : 0"
             role="combobox"
@@ -40,8 +41,7 @@
                         <span class="vue-select__tag-text">{{ item.text }}</span>
                         <span
                             class="vue-select__tag-remove"
-                            @click.stop="removeItem(item)"
-                            @mousedown.prevent
+                            @pointerdown.stop.prevent="removeItem(item)"
                         >&times;</span>
                     </span>
                     <input
@@ -82,8 +82,7 @@
                 <span
                     v-if="allowClear && !disabled && (multiple ? selectedItems.length > 0 : modelValue !== null && modelValue !== '')"
                     class="vue-select__clear"
-                    @click.stop="clearAll"
-                    @mousedown.prevent
+                    @pointerdown.stop.prevent="clearAll"
                     :title="phrases.clear()"
                 >&times;</span>
                 <span class="vue-select__separator"></span>
@@ -122,7 +121,8 @@
                                 'vue-select__option--focused': focusedIndex === getFlatIndex(option, child),
                                 'vue-select__option--tag': child.isTag,
                             }"
-                            @click.stop="selectOption(child)"
+                            @pointerdown.stop.prevent="selectOption(child)"
+                            @click.stop="onOptionClick($event, child)"
                             @mouseenter="focusedIndex = getFlatIndex(option, child)"
                             role="option"
                             :aria-selected="isSelected(child)"
@@ -138,7 +138,8 @@
                             'vue-select__option--focused': focusedIndex === getFlatIndexSimple(option),
                             'vue-select__option--tag': option.isTag,
                         }"
-                        @click.stop="selectOption(option)"
+                        @pointerdown.stop.prevent="selectOption(option)"
+                        @click.stop="onOptionClick($event, option)"
                         @mouseenter="focusedIndex = getFlatIndexSimple(option)"
                         role="option"
                         :aria-selected="isSelected(option)"
@@ -592,6 +593,13 @@ const toggleDropdown = () => {
     isOpen.value ? closeDropdown() : openDropdown();
 };
 
+const isPointerClick = (event) => event.detail > 0;
+
+const onControlClick = (event) => {
+    if (props.disabled || isPointerClick(event)) return;
+    toggleDropdown();
+};
+
 // ─── Pagination (IntersectionObserver) ────────────────────────────────────────
 
 let paginationObserver = null;
@@ -647,6 +655,11 @@ const selectOption = (option) => {
         loadOptions('', 1);
         nextTick(() => searchInputRef.value?.focus());
     }
+};
+
+const onOptionClick = (event, option) => {
+    if (isPointerClick(event)) return;
+    selectOption(option);
 };
 
 const removeItem = (option) => {
