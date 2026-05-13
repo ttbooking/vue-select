@@ -99,6 +99,7 @@ const cities = [
 | `multiple` | `Boolean` | `false` | Enables multiple selection. |
 | `placeholder` | `String` | `''` | Text shown when no value is selected. |
 | `disabled` | `Boolean` | `false` | Disables the component. |
+| `allowClear` | `Boolean` | `true` | Shows the clear button when a value is selected. |
 | `hasError` | `Boolean` | `false` | Adds the `has-error` class for Bootstrap 3 validation styles. |
 | `name` | `String` | `null` | Name for the hidden native `<select>` used during regular form submit. |
 | `selectClass` | `String \| Object` | `''` | Extra class or class object applied to the control element. |
@@ -466,7 +467,7 @@ const createTag = ({ term }) => ({ id: term, text: term })
 | `tags: true` | `createTag` | Return `null` to reject a tag. |
 | `tokenSeparators` | `tagSeparator` | Use a `RegExp` instead of an array. |
 | `data` | `options` | Static local data. |
-| `allowClear` | built in | The clear button appears automatically when a value is selected. |
+| `allowClear` | `allowClear` | `:allow-clear="false"` hides the clear button. |
 | `disabled` | `disabled` | Same behavior. |
 | `language` | `lang` | Use `'en'`, `'ru'`, or a custom phrase object. |
 | `minimumInputLength` | custom `queryFunction` logic | Gate remote requests inside your query function. |

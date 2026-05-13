@@ -198,6 +198,11 @@ describe('VueSelect', () => {
       expect(wrapper.find('.vue-select__clear').exists()).toBe(false)
     })
 
+    it('hides clear button when allowClear is false', () => {
+      wrapper = factory({ modelValue: '1', allowClear: false })
+      expect(wrapper.find('.vue-select__clear').exists()).toBe(false)
+    })
+
     it('clearAll emits null', async () => {
       wrapper = factory({ modelValue: '1' })
       await wrapper.find('.vue-select__clear').trigger('click')

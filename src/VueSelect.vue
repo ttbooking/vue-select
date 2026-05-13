@@ -80,7 +80,7 @@
             <!-- Кнопки справа -->
             <div class="vue-select__indicators">
                 <span
-                    v-if="!disabled && (multiple ? selectedItems.length > 0 : modelValue !== null && modelValue !== '')"
+                    v-if="allowClear && !disabled && (multiple ? selectedItems.length > 0 : modelValue !== null && modelValue !== '')"
                     class="vue-select__clear"
                     @click.stop="clearAll"
                     @mousedown.prevent
@@ -237,6 +237,11 @@ const props = defineProps({
     disabled: {
         type: Boolean,
         default: false,
+    },
+    // Показывать кнопку очистки выбранного значения
+    allowClear: {
+        type: Boolean,
+        default: true,
     },
     // Признак ошибки валидации (добавляет класс has-error)
     hasError: {

@@ -100,6 +100,7 @@ const cities = [
 | `multiple` | `Boolean` | `false` | Включает множественный выбор. |
 | `placeholder` | `String` | `''` | Текст-заглушка при пустом значении. |
 | `disabled` | `Boolean` | `false` | Отключает компонент. |
+| `allowClear` | `Boolean` | `true` | Показывает кнопку очистки, когда значение выбрано. |
 | `hasError` | `Boolean` | `false` | Добавляет класс `has-error` для Bootstrap 3 validation styles. |
 | `name` | `String` | `null` | Имя скрытого нативного `<select>` для отправки обычной HTML-формы. |
 | `selectClass` | `String \| Object` | `''` | Дополнительный класс или объект классов для основного контрола. |
@@ -473,7 +474,7 @@ const createTag = ({ term }) => ({ id: term, text: term })
 | `tags: true` | `createTag` | Верните `null`, чтобы отклонить тег. |
 | `tokenSeparators` | `tagSeparator` | Используется `RegExp`, а не массив символов. |
 | `data` | `options` | Статические локальные данные. |
-| `allowClear` | встроено | Кнопка очистки появляется автоматически, когда значение выбрано. |
+| `allowClear` | `allowClear` | `:allow-clear="false"` скрывает кнопку очистки. |
 | `disabled` | `disabled` | Такое же поведение. |
 | `language` | `lang` | `'en'`, `'ru'` или объект с фразами. |
 | `minimumInputLength` | логика в `queryFunction` | Ограничивайте запросы внутри своей функции. |

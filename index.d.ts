@@ -61,6 +61,8 @@ export interface VueSelectProps {
   /** When true, default (empty query) search runs against the cache instead of `options`. */
   isDefaultFromCache?: boolean
   disabled?: boolean
+  /** Shows the clear button when a value is selected. */
+  allowClear?: boolean
   /** Adds `has-error` CSS class to the root element (Bootstrap 3 validation style). */
   hasError?: boolean
   placeholder?: string
