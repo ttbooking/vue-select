@@ -828,6 +828,12 @@ onBeforeUnmount(() => {
     align-items: center;
     flex: 1;
     min-width: 0;
+    /* Держит высоту контрола постоянной, когда при открытии single-режима контейнер пустеет
+       (single-value скрыт, поиск отключён) — иначе поле «дёргается» по вертикали.
+       box-sizing фиксируем явно: на хостах с глобальным reset (* { box-sizing: border-box })
+       min-height иначе поглощал бы вертикальный padding и высота всё равно прыгала на 2px. */
+    box-sizing: content-box;
+    min-height: 28px; /* = line-height одиночного значения */
     gap: 2px;
     padding: 1px 0;
 }
