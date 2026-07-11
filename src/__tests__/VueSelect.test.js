@@ -537,6 +537,25 @@ describe('VueSelect', () => {
       expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
     })
 
+    it('Space typed in search input is not swallowed by control handler', async () => {
+      wrapper = factory()
+      await openDropdown(wrapper)
+      const search = wrapper.find('.vue-select__search')
+      const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+      search.element.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(false)
+    })
+
+    it('Enter in search input does not reopen dropdown after selection', async () => {
+      wrapper = factory()
+      await openDropdown(wrapper)
+      const search = wrapper.find('.vue-select__search')
+      await search.trigger('keydown', { key: 'ArrowDown' }) // focus index 0
+      await search.trigger('keydown', { key: 'Enter' })
+      await flushPromises()
+      expect(wrapper.find('.vue-select').classes()).not.toContain('vue-select--open')
+    })
+
     it('ArrowDown moves focus to next option', async () => {
       wrapper = factory()
       await openDropdown(wrapper)

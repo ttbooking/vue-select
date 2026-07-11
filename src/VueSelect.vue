@@ -678,6 +678,9 @@ const clearAll = () => {
 // ─── Keyboard navigation ──────────────────────────────────────────────────────
 
 const onControlKeydown = (e) => {
+    // События из поискового input обрабатывает onSearchKeydown; всплывшие сюда
+    // игнорируем, иначе preventDefault() съедает пробел при наборе запроса
+    if (e.target === searchInputRef.value) return;
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
         e.preventDefault();
         openDropdown();
