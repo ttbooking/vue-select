@@ -1,6 +1,6 @@
 {
   "name": "@ttbooking/vue-select",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Vue 3 select/multiselect component — lightweight drop-in replacement for jQuery select2",
   "type": "module",
   "main": "./dist/vue-select.umd.cjs",
