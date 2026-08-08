@@ -7,6 +7,7 @@
   "module": "./dist/vue-select.js",
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "import": "./dist/vue-select.js",
       "require": "./dist/vue-select.umd.cjs"
     },
