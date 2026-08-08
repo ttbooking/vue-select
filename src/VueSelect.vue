@@ -21,7 +21,7 @@
         <div
             class="vue-select__control"
             :class="[selectClass, { 'vue-select__control--focus': isOpen }]"
-            @pointerdown.prevent="!disabled && toggleDropdown()"
+            @pointerdown="onControlPointerDown"
             @click="onControlClick"
             @keydown="onControlKeydown"
             :tabindex="disabled ? -1 : 0"
@@ -598,6 +598,19 @@ const closeDropdown = () => {
 
 const toggleDropdown = () => {
     isOpen.value ? closeDropdown() : openDropdown();
+};
+
+const onControlPointerDown = (event) => {
+    // Клик в открытое поле поиска — работа с текстом, а не с состоянием списка:
+    // не переключаем и не гасим default, иначе браузер не поставит каретку и не
+    // даст выделить набранное. Закрытый список инпут открывает как раньше
+    // (multiple с пустым значением показывает его и в закрытом состоянии).
+    if (isOpen.value && event.target === searchInputRef.value) return;
+
+    // Иначе default гасим всегда: он уводит фокус на контрол и начинает
+    // выделение текста подписи
+    event.preventDefault();
+    if (!props.disabled) toggleDropdown();
 };
 
 const isPointerClick = (event) => event.detail > 0;

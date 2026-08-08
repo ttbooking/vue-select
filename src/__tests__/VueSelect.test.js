@@ -189,6 +189,25 @@ describe('VueSelect', () => {
       expect(label.classes()).not.toContain('vue-select__value--covered')
     })
 
+    it('stays open when the search input is clicked', async () => {
+      wrapper = factory({ modelValue: '2' })
+      await openDropdown(wrapper)
+      const search = wrapper.find('.vue-select__search')
+      const event = new MouseEvent('pointerdown', { bubbles: true, cancelable: true })
+      search.element.dispatchEvent(event)
+      await flushPromises()
+      expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
+      // default не погашен — иначе браузер не поставит каретку в текст запроса
+      expect(event.defaultPrevented).toBe(false)
+    })
+
+    it('opens when the multiple-mode search input is clicked while closed', async () => {
+      wrapper = factory({ multiple: true })
+      await wrapper.find('.vue-select__search').trigger('pointerdown')
+      await flushPromises()
+      expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
+    })
+
     it('shows all options when opened', async () => {
       wrapper = factory()
       await openDropdown(wrapper)
