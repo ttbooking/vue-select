@@ -150,6 +150,29 @@ describe('VueSelect', () => {
       expect(wrapper.find('.vue-select').classes()).not.toContain('vue-select--open')
     })
 
+    it('closes on outside click that also started outside', async () => {
+      wrapper = factory()
+      await openDropdown(wrapper)
+      document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+      document.body.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+      await flushPromises()
+      expect(wrapper.find('.vue-select').classes()).not.toContain('vue-select--open')
+    })
+
+    it('stays open when the click starts on the arrow but lands outside (control reflow)', async () => {
+      wrapper = factory({ modelValue: '2' })
+      // Клик по стрелке: контрол при открытии сжимается (подпись → поле поиска),
+      // и mouseup / click приходят уже на внешний узел
+      wrapper.find('.vue-select__arrow').element
+        .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }))
+      await flushPromises()
+      expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
+
+      document.body.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+      await flushPromises()
+      expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
+    })
+
     it('shows all options when opened', async () => {
       wrapper = factory()
       await openDropdown(wrapper)

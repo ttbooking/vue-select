@@ -744,7 +744,22 @@ const onSearchBlur = () => {
 
 // ─── Outside click ────────────────────────────────────────────────────────────
 
+// Начался ли текущий клик внутри компонента. Проверять только target у click
+// недостаточно: при открытии контрол перекомпоновывается (подпись заменяется
+// полем поиска, ширина меняется), элемент уезжает из-под курсора, и mouseup /
+// click приходят уже на внешний узел — клик по стрелке выглядел бы внешним и
+// сразу закрывал только что открытый список.
+let pointerDownedInside = false;
+
+// capture: часть обработчиков в шаблоне гасит всплытие (@pointerdown.stop)
+const onPointerDownCapture = (e) => {
+    pointerDownedInside = !!containerRef.value?.contains(e.target);
+};
+
 const onClickOutside = (e) => {
+    const startedInside = pointerDownedInside;
+    pointerDownedInside = false;
+    if (startedInside) return;
     if (!containerRef.value?.contains(e.target)) {
         closeDropdown();
     }
@@ -771,10 +786,12 @@ watch(() => props.options, (newOptions) => {
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(() => {
+    document.addEventListener('pointerdown', onPointerDownCapture, true);
     document.addEventListener('click', onClickOutside);
 });
 
 onBeforeUnmount(() => {
+    document.removeEventListener('pointerdown', onPointerDownCapture, true);
     document.removeEventListener('click', onClickOutside);
     destroyPaginationObserver();
     clearTimeout(searchDebounceTimer);
