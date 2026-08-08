@@ -173,6 +173,22 @@ describe('VueSelect', () => {
       expect(wrapper.find('.vue-select').classes()).toContain('vue-select--open')
     })
 
+    it('keeps the single value in the DOM while open, to hold the control width', async () => {
+      wrapper = factory({ modelValue: '2' })
+      await openDropdown(wrapper)
+      const label = wrapper.find('.vue-select__single-value')
+      expect(label.exists()).toBe(true)
+      expect(label.classes()).toContain('vue-select__value--covered')
+    })
+
+    it('keeps the single value visible while open when there is no search input', async () => {
+      wrapper = factory({ modelValue: '2', minimumResultsForSearch: 99 })
+      await openDropdown(wrapper)
+      const label = wrapper.find('.vue-select__single-value')
+      expect(label.exists()).toBe(true)
+      expect(label.classes()).not.toContain('vue-select__value--covered')
+    })
+
     it('shows all options when opened', async () => {
       wrapper = factory()
       await openDropdown(wrapper)

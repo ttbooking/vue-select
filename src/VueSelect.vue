@@ -30,7 +30,7 @@
             aria-haspopup="listbox"
         >
             <!-- Выбранные значения -->
-            <div class="vue-select__value-container">
+            <div class="vue-select__value-container" :class="{ 'vue-select__value-container--single': !multiple }">
                 <template v-if="multiple">
                     <span
                         v-for="item in selectedItems"
@@ -57,7 +57,13 @@
                     />
                 </template>
                 <template v-else>
-                    <span v-if="!isOpen && selectedItems.length > 0" class="vue-select__single-value">
+                    <!-- Подпись остаётся в разметке и когда открыто: она лежит в одной
+                         ячейке грида с полем поиска и держит ширину контрола -->
+                    <span
+                        v-if="selectedItems.length > 0"
+                        class="vue-select__single-value"
+                        :class="{ 'vue-select__value--covered': isOpen && showSearchInput }"
+                    >
                         {{ selectedItems[0]?.text }}
                     </span>
                     <input
@@ -71,8 +77,9 @@
                         autocomplete="off"
                     />
                     <span
-                        v-if="!isOpen && selectedItems.length === 0"
+                        v-if="selectedItems.length === 0"
                         class="vue-select__placeholder"
+                        :class="{ 'vue-select__value--covered': isOpen && showSearchInput }"
                     >{{ placeholder }}</span>
                 </template>
             </div>
@@ -856,6 +863,27 @@ onBeforeUnmount(() => {
     min-height: 28px; /* = line-height одиночного значения */
     gap: 2px;
     padding: 1px 0;
+}
+
+/* Одиночный режим: подпись, плейсхолдер и поле поиска лежат в одной ячейке грида.
+   Ширина контрола = максимум из них, поэтому при открытии (подпись → поле поиска)
+   контрол не сжимается и не уезжает из-под курсора. */
+.vue-select__value-container--single {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.vue-select__value-container--single > .vue-select__single-value,
+.vue-select__value-container--single > .vue-select__placeholder,
+.vue-select__value-container--single > .vue-select__search {
+    grid-area: 1 / 1;
+    min-width: 0; /* иначе элемент не даёт ячейке сузиться и ломает ellipsis */
+}
+
+/* Перекрыто полем поиска: не видно и не кликается, но ширину держит */
+.vue-select__value--covered {
+    visibility: hidden;
+    pointer-events: none;
 }
 
 /* ── Одиночное значение ── */
