@@ -584,6 +584,7 @@ const openDropdown = async () => {
     isOpen.value = true;
     await loadOptions('', 1);
     await nextTick();
+    if (!isOpen.value || props.disabled) return;
     searchInputRef.value?.focus();
     setupPaginationObserver();
 };
@@ -665,6 +666,8 @@ const addValue = (option) => {
 };
 
 const selectOption = (option) => {
+    if (props.disabled) return;
+
     if (isSelected(option) && props.multiple) {
         removeItem(option);
         return;
@@ -796,6 +799,10 @@ const getFlatIndexSimple = (option) => {
 };
 
 // ─── Watchers ─────────────────────────────────────────────────────────────────
+
+watch(() => props.disabled, (disabled) => {
+    if (disabled && isOpen.value) closeDropdown();
+});
 
 watch(() => props.options, (newOptions) => {
     if (!newOptions) return;

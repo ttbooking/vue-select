@@ -115,6 +115,19 @@ describe('VueSelect', () => {
       expect(wrapper.find('.vue-select__status').text()).toBe('No results found')
     })
 
+    it('closes the dropdown and prevents selection when disabled while open', async () => {
+      wrapper = factory({ modelValue: '1' })
+      await openDropdown(wrapper)
+      const option = wrapper.findAll('.vue-select__option')[1]
+      expect(option.isVisible()).toBe(true)
+
+      await wrapper.setProps({ disabled: true })
+      await option.trigger('pointerdown')
+
+      expect(wrapper.find('.vue-select__dropdown').isVisible()).toBe(false)
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    })
+
     it('opens on control click', async () => {
       wrapper = factory()
       await openDropdown(wrapper)
